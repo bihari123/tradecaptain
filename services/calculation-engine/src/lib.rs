@@ -4,6 +4,10 @@ pub mod technical;
 pub mod portfolio;
 pub mod cache;
 pub mod persistence;
+pub mod ultrafast_log;
+pub mod cache_optimized;
+pub mod orderbook;
+pub mod numa_optimizer;
 
 pub use financial::FinancialCalculator;
 pub use risk::RiskCalculator;
@@ -11,6 +15,10 @@ pub use technical::TechnicalIndicators;
 pub use portfolio::PortfolioAnalyzer;
 pub use cache::{L1Cache, UltraFastChannel, LockFreeQueue, MarketDataCached};
 pub use persistence::{UltraFastDB, PortfolioState, TimeSeriesPoint};
+pub use ultrafast_log::{UltraFastLog, SharedUltraFastLog, LogStats};
+pub use cache_optimized::{CacheOptimizedMarketData, CacheAlignedCounters, CacheOptimizedPriceArray};
+pub use orderbook::{OrderBook, Order, Side, BestBidOffer, Level2Snapshot};
+pub use numa_optimizer::{NumaScheduler, NumaTopology, NumaAllocator};
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_double, c_int};

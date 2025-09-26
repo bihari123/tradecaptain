@@ -20,4 +20,5 @@ require (
     github.com/ClickHouse/clickhouse-go/v2 v2.15.0
     github.com/iceber/iouring-go v0.0.0-20230403020409-002cfd2e2a90
     github.com/google/flatbuffers v23.5.26+incompatible
+    github.com/lirm/aeron-go v1.0.8
 )

@@ -13,4 +13,5 @@ require (
     github.com/dgraph-io/badger/v3 v3.2103.5
     github.com/vmihailenco/msgpack/v5 v5.4.1
     github.com/questdb/go-questdb-client v1.1.0
+    github.com/lirm/aeron-go v1.0.8
 )

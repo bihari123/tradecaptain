@@ -2,11 +2,15 @@ pub mod financial;
 pub mod risk;
 pub mod technical;
 pub mod portfolio;
+pub mod cache;
+pub mod persistence;
 
 pub use financial::FinancialCalculator;
 pub use risk::RiskCalculator;
 pub use technical::TechnicalIndicators;
 pub use portfolio::PortfolioAnalyzer;
+pub use cache::{L1Cache, UltraFastChannel, LockFreeQueue, MarketDataCached};
+pub use persistence::{UltraFastDB, PortfolioState, TimeSeriesPoint};
 
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_double, c_int};

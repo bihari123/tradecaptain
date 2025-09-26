@@ -33,16 +33,25 @@ services:
     networks:
       - tradecaptain_network
 
-  # Redis Cache
-  redis:
-    image: redis:7-alpine
-    container_name: tradecaptain_redis
+  # Dragonfly Cache (25x faster than Redis)
+  dragonfly:
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
+    container_name: tradecaptain_dragonfly
+    command: >
+      --cluster_mode=emulated
+      --port=6379
+      --save_schedule="0 0 * * * *"
+      --maxmemory=2gb
     ports:
       - "6379:6379"
     volumes:
-      - redis_data:/data
+      - dragonfly_data:/data
     networks:
       - tradecaptain_network
+    deploy:
+      resources:
+        limits:
+          memory: 2G
 
   # Kafka (for real-time data streaming)
   zookeeper:
@@ -79,11 +88,11 @@ services:
     container_name: tradecaptain_data_collector
     depends_on:
       - postgres
-      - redis
+      - dragonfly
       - kafka
     environment:
       - DATABASE_URL=postgres://tradecaptain_user:tradecaptain_pass@postgres:5432/tradecaptain?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://dragonfly:6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
     env_file:
       - .env
@@ -98,9 +107,9 @@ services:
       dockerfile: Dockerfile
     container_name: tradecaptain_calc_engine
     depends_on:
-      - redis
+      - dragonfly
     environment:
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://dragonfly:6379
     networks:
       - tradecaptain_network
     restart: unless-stopped
@@ -113,14 +122,14 @@ services:
     container_name: tradecaptain_api_gateway
     depends_on:
       - postgres
-      - redis
+      - dragonfly
       - kafka
       - data-collector
     ports:
       - "8080:8080"
     environment:
       - DATABASE_URL=postgres://tradecaptain_user:tradecaptain_pass@postgres:5432/tradecaptain?sslmode=disable
-      - REDIS_URL=redis://redis:6379
+      - REDIS_URL=redis://dragonfly:6379
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
       - JWT_SECRET=your-jwt-secret-key
       - PORT=8080
@@ -198,7 +207,7 @@ services:
 volumes:
   postgres_data:
   timescaledb_data:
-  redis_data:
+  dragonfly_data:
   grafana_data:
   prometheus_data:
 

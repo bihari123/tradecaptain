@@ -12,6 +12,7 @@ import (
 	"tradecaptain/data-collector/internal/collector"
 	"tradecaptain/data-collector/internal/config"
 	"tradecaptain/data-collector/internal/storage"
+	"tradecaptain/data-collector/internal/cache"
 
 	"github.com/joho/godotenv"
 )
@@ -32,11 +33,30 @@ func main() {
 	}
 	defer db.Close()
 
-	cache, err := storage.NewRedisCache(cfg.RedisURL)
+	// Initialize L1 embedded cache (BigCache - 25x faster than Redis for local data)
+	l1Cache, err := cache.NewL1Cache()
 	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
+		log.Fatalf("Failed to initialize L1 cache: %v", err)
 	}
-	defer cache.Close()
+	defer l1Cache.Close()
+
+	// Initialize L2 distributed cache (Dragonfly - Redis compatible)
+	redisCache, err := storage.NewRedisCache(cfg.RedisURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to Dragonfly: %v", err)
+	}
+	defer redisCache.Close()
+
+	// Initialize BadgerDB WAL for ultra-fast local persistence
+	walPath := os.Getenv("WAL_PATH")
+	if walPath == "" {
+		walPath = "./data/wal"
+	}
+	wal, err := storage.NewBadgerWAL(walPath, cfg.KafkaBootstrapServers)
+	if err != nil {
+		log.Fatalf("Failed to initialize WAL: %v", err)
+	}
+	defer wal.Close()
 
 	// Initialize Kafka producer
 	producer, err := storage.NewKafkaProducer(cfg.KafkaBootstrapServers)
@@ -45,8 +65,8 @@ func main() {
 	}
 	defer producer.Close()
 
-	// Initialize data collector
-	dataCollector := collector.New(db, cache, producer, cfg)
+	// Initialize data collector with optimized storage layers
+	dataCollector := collector.NewWithOptimizations(db, l1Cache, redisCache, wal, producer, cfg)
 
 	// Setup graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())

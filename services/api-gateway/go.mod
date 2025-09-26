@@ -14,4 +14,7 @@ require (
     github.com/swaggo/gin-swagger v1.6.0
     github.com/swaggo/files v1.0.1
     github.com/swaggo/swag v1.16.2
+    github.com/allegro/bigcache/v3 v3.1.0
+    github.com/dgraph-io/badger/v3 v3.2103.5
+    github.com/vmihailenco/msgpack/v5 v5.4.1
 )

@@ -9,4 +9,7 @@ require (
     github.com/gin-gonic/gin v1.9.1
     github.com/gorilla/websocket v1.5.0
     github.com/joho/godotenv v1.5.1
+    github.com/allegro/bigcache/v3 v3.1.0
+    github.com/dgraph-io/badger/v3 v3.2103.5
+    github.com/vmihailenco/msgpack/v5 v5.4.1
 )

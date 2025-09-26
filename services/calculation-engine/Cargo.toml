@@ -20,6 +20,12 @@ uuid = { version = "1.0", features = ["v4"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
 
+# Performance optimizations
+moka = { version = "0.12", features = ["future"] }
+crossbeam = "0.8"
+rocksdb = "0.21"
+rmp-serde = "1.1"  # MessagePack for Rust
+
 [dev-dependencies]
 approx = "0.5"
 

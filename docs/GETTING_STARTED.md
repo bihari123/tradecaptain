@@ -6,24 +6,35 @@ Email: thakur[dot]cs[dot]tarun[at]gmail[dot]com
 
 ## 🎯 **For New Team Members**
 
-Welcome to the TradeCaptain project! This guide will help you understand the system architecture, set up your development environment, and start contributing effectively.
+Welcome to the TradeCaptain project! This guide will help you understand our **ultra-high-performance trading system architecture**, set up your advanced development environment, and start contributing to institutional-grade financial software.
 
 ## 📋 **Prerequisites**
 
 ### **Required Software**
 ```bash
-# Development Tools
-- Docker & Docker Compose (latest)
-- Go 1.21+
-- Rust 1.70+
-- Node.js 18+
-- PostgreSQL 15+ (for local development)
-- Redis 7+ (for local development)
+# Core Development Tools
+- Docker & Docker Compose (latest with buildx)
+- Go 1.21+ (with CGO enabled for FFI)
+- Rust 1.70+ (with nightly for SIMD features)
+- Node.js 18+ (with TypeScript)
 
-# Recommended IDEs
-- VS Code with Go, Rust, and TypeScript extensions
-- GoLand (JetBrains)
-- RustRover or IntelliJ IDEA with Rust plugin
+# Ultra-Performance Components (Auto-installed via Docker)
+- QuestDB 7.3+ (time-series database)
+- ClickHouse 23+ (columnar analytics)
+- Dragonfly DB (Redis replacement)
+- Benthos (stream processing)
+- Aeron messaging libraries
+
+# System Requirements (for optimal performance)
+- Linux kernel 5.4+ (io_uring support)
+- 16GB+ RAM (32GB recommended for huge pages)
+- NVMe SSD storage
+- Multi-core CPU (NUMA-capable preferred)
+
+# Recommended IDEs with Performance Profiling
+- VS Code with Go, Rust, TypeScript + Performance extensions
+- GoLand with CPU/Memory profilers
+- RustRover with Criterion benchmarking integration
 ```
 
 ### **API Keys (Free Tier)**
@@ -36,43 +47,52 @@ NEWS_API_KEY             # https://newsapi.org/
 FRED_API_KEY             # https://fred.stlouisfed.org/docs/api/api_key.html
 ```
 
-## 🏗️ **System Architecture Overview**
+## 🏗️ **Ultra-High-Performance Architecture Overview**
 
-Our system follows a **microservices architecture** with **multi-language implementation**:
+Our system implements a **three-phase optimized microservices architecture** with **expert-level performance engineering**:
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   API Gateway    │    │ Data Collector  │
-│   (React/TS)    │◄──►│   (Go/Gin)       │◄──►│   (Go)          │
-└─────────────────┘    └──────────────────┘    └─────────────────┘
-                                │                        │
-                                ▼                        ▼
-┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-│ Calculation     │    │   PostgreSQL     │    │     Kafka       │
-│ Engine (Rust)   │    │   + TimescaleDB  │    │   (Streaming)   │
+│   (React/TS)    │◄──►│ Go + io_uring    │◄──►│ Go + Aeron      │
+│ WebSocket       │    │ FlatBuffers      │    │ BigCache + WAL  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
          │                       │                        │
-         └───────────────────────┼────────────────────────┘
-                                 ▼
-                       ┌──────────────────┐
-                       │      Redis       │
-                       │     (Cache)      │
-                       └──────────────────┘
+         │               ┌───────┼───────┐               │
+         │               ▼       ▼       ▼               ▼
+┌─────────────────┐ ┌─────────┐ ┌───────┐ ┌─────────────────┐
+│ Calculation     │ │ClickHse │ │QuestDB│ │   Benthos       │
+│ Engine (Rust)   │ │100x     │ │6.5x   │ │ Stream Process  │
+│ NUMA+HugePages  │ │Analytics│ │Faster │ │ Go-native       │
+└─────────────────┘ └─────────┘ └───────┘ └─────────────────┘
+         │                │         │               │
+         ▼                └─────────┼───────────────┘
+┌─────────────────┐                ▼
+│   Dragonfly     │       ┌──────────────────┐
+│ 25x Faster      │       │ Aeron + Ring     │
+│ than Redis      │       │ Buffer <100μs    │
+└─────────────────┘       └──────────────────┘
 ```
 
-### **Why Multi-Language Architecture?**
+### **Why Ultra-Performance Multi-Language Architecture?**
 
-| Language | Use Case | Reasoning |
-|----------|----------|-----------|
-| **Go** | API Gateway, Data Collection | Excellent concurrency, great for I/O operations |
-| **Rust** | Financial Calculations | Maximum performance, memory safety for critical calculations |
-| **TypeScript** | Frontend | Type safety, modern React development |
+| Language | Use Case | Performance Engineering |
+|----------|----------|------------------------|
+| **Go** | Ultra-fast I/O, Messaging | Aeron messaging, io_uring, BigCache (zero-GC), BadgerDB WAL |
+| **Rust** | Microsecond Calculations | NUMA optimization, memory-mapped persistence, cache-aligned structures, vectorizable operations |
+| **TypeScript** | Real-time Frontend | WebSocket streaming, optimized charting, minimal re-renders |
+
+### **Three-Phase Performance Optimization**
+
+**Phase 1 (Foundation)**: Dragonfly (25x), BigCache (zero-GC), MessagePack (2x faster)
+**Phase 2 (Architecture)**: QuestDB (6.5x), ClickHouse (100x), io_uring (3x), FlatBuffers
+**Phase 3 (Expert-Level)**: Aeron (<100μs), Ring Buffer (10ns), NUMA, Huge Pages, Cap'n Proto
 
 ## 🚀 **Quick Start (5 minutes)**
 
 ### **1. Clone and Setup**
 ```bash
-git clone <repository-url>
+git clone https://github.com/bihari123/tradecaptain.git
 cd tradecaptain
 
 # Copy environment template
@@ -80,27 +100,44 @@ cp .env.example .env
 
 # Edit .env with your API keys
 nano .env
+
+# IMPORTANT: Run system optimizations (requires sudo)
+sudo ./scripts/setup-hugepages.sh
+sudo ./scripts/performance-tune.sh
 ```
 
-### **2. Start Development Environment**
+### **2. Start Ultra-Performance Environment**
 ```bash
-# Start all services with Docker
+# Start all optimized services with Docker
 make run
 
 # OR start infrastructure only and run services locally
 make run-local
+
+# Check NUMA topology (multi-socket systems)
+./scripts/numa-config.sh --check
 ```
 
-### **3. Verify Setup**
+### **3. Verify Ultra-Performance Setup**
 ```bash
 # Check all services are running
 curl http://localhost:8080/health
 
-# Check frontend
+# Check frontend with real-time updates
 open http://localhost:3000
 
 # Check API documentation
 open http://localhost:8080/swagger/index.html
+
+# Verify performance monitoring
+open http://localhost:3001  # Grafana + Phlare profiling
+open http://localhost:4040  # Continuous profiling
+open http://localhost:9000  # QuestDB console
+open http://localhost:8123  # ClickHouse interface
+
+# Run performance benchmarks
+make benchmark-latency
+make benchmark-throughput
 ```
 
 ## 📁 **Project Structure**

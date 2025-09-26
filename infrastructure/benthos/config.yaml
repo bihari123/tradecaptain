@@ -1,0 +1,136 @@
+# Benthos Stream Processing Configuration
+# Optimized for financial data pipelines
+
+input:
+  label: "market_data_stream"
+  kafka:
+    addresses: ["kafka:9092"]
+    topics: ["market-data", "portfolio-updates", "order-flow"]
+    consumer_group: "benthos-processors"
+    start_from_oldest: false
+    batching:
+      count: 100
+      period: "50ms"  # Sub-100ms processing
+
+pipeline:
+  processors:
+    # High-frequency data enrichment
+    - label: "enrich_market_data"
+      bloblang: |
+        # Parse incoming market data
+        root = this
+
+        # Add derived fields for technical analysis
+        root.price_change = this.price - this.prev_price
+        root.price_change_pct = (this.price_change / this.prev_price) * 100
+
+        # Add volatility calculation
+        root.volatility = this.high - this.low
+        root.volatility_pct = (this.volatility / this.price) * 100
+
+        # Add timestamp processing
+        root.processing_time = now()
+        root.latency_microseconds = (now() - this.timestamp) / 1000
+
+        # Normalize symbol format
+        root.symbol = this.symbol.uppercase()
+
+        # Add market session info
+        root.market_session = if this.timestamp.ts_hour() >= 9 && this.timestamp.ts_hour() < 16 {
+          "market_hours"
+        } else {
+          "after_hours"
+        }
+
+    # Risk calculations
+    - label: "calculate_risk_metrics"
+      bloblang: |
+        root = this
+
+        # Value at Risk calculation (simplified)
+        root.var_1d = this.price * 0.02  # 2% daily VaR
+
+        # Position sizing recommendation
+        root.max_position_size = 10000 / this.var_1d
+
+        # Risk classification
+        root.risk_level = if this.volatility_pct > 5 {
+          "high"
+        } else if this.volatility_pct > 2 {
+          "medium"
+        } else {
+          "low"
+        }
+
+    # Performance metrics
+    - label: "add_performance_metrics"
+      bloblang: |
+        root = this
+        root.processing_latency_us = (now() - this.processing_time) / 1000
+        root.pipeline_stage = "enriched"
+
+output:
+  label: "multi_output"
+  broker:
+    pattern: "fan_out"
+    outputs:
+      # Real-time data to QuestDB (high-speed ingestion)
+      - label: "questdb_realtime"
+        http_client:
+          url: "http://questdb:9000/exec"
+          verb: "GET"
+          timeout: "1s"
+          retries: 3
+          backoff:
+            initial_interval: "100ms"
+            max_interval: "1s"
+          query:
+            q: |
+              INSERT INTO market_data_realtime
+              VALUES(
+                '${! this.symbol }',
+                ${! this.price },
+                ${! this.volume },
+                ${! this.timestamp },
+                ${! this.volatility_pct },
+                ${! this.risk_level }
+              )
+
+      # Batch data to ClickHouse (analytics)
+      - label: "clickhouse_analytics"
+        http_client:
+          url: "http://clickhouse:8123/"
+          verb: "POST"
+          timeout: "5s"
+          headers:
+            Content-Type: "text/plain"
+          batching:
+            count: 1000
+            period: "5s"
+          body: |
+            INSERT INTO market_analytics FORMAT JSONEachRow
+            ${! json() }
+
+      # Cache updates to Dragonfly
+      - label: "cache_update"
+        redis_streams:
+          url: "redis://dragonfly:6379"
+          stream: "market_data_updates"
+          max_length: 10000
+          body: "${! json() }"
+
+# Metrics and monitoring
+metrics:
+  prometheus:
+    address: "0.0.0.0:4040"
+    path: "/metrics"
+
+logger:
+  level: "INFO"
+  format: "json"
+  add_timestamp: true
+
+# Resource limits for optimal performance
+resources:
+  memory_limit: "512MB"
+  cpu_limit: "1000m"

@@ -1,0 +1,155 @@
+// FlatBuffers schema for ultra-fast market data serialization
+// Optimized for zero-copy deserialization
+
+namespace TradeCaptain.Messages;
+
+enum Side : byte { BUY = 0, SELL = 1 }
+enum OrderType : byte { MARKET = 0, LIMIT = 1, STOP = 2, STOP_LIMIT = 3 }
+enum MarketSession : byte { PRE_MARKET = 0, REGULAR = 1, AFTER_HOURS = 2 }
+
+// Market data message (Level 1)
+table MarketData {
+    symbol: string (required);
+    timestamp: uint64;           // Unix timestamp in nanoseconds
+    price: double;
+    volume: uint64;
+    bid: double;
+    ask: double;
+    bid_size: uint64;
+    ask_size: uint64;
+    high: double;
+    low: double;
+    open: double;
+    close: double;
+    prev_close: double;
+    session: MarketSession;
+    exchange: string;
+    sequence: uint64;            // Sequence number for ordering
+}
+
+// Order book entry (Level 2)
+table OrderBookEntry {
+    symbol: string (required);
+    timestamp: uint64;
+    side: Side;
+    price: double;
+    size: double;
+    order_count: uint32;
+    exchange: string;
+    sequence: uint64;
+}
+
+// Trade execution
+table Trade {
+    symbol: string (required);
+    timestamp: uint64;
+    trade_id: uint64;
+    price: double;
+    size: double;
+    side: Side;
+    exchange: string;
+    conditions: [string];        // Trade conditions/flags
+    sequence: uint64;
+}
+
+// Portfolio position
+table Position {
+    symbol: string (required);
+    quantity: double;
+    avg_cost: double;
+    current_price: double;
+    market_value: double;
+    unrealized_pnl: double;
+    realized_pnl: double;
+    day_change: double;
+    day_change_pct: double;
+}
+
+// Portfolio snapshot
+table Portfolio {
+    portfolio_id: string (required);
+    timestamp: uint64;
+    total_value: double;
+    cash: double;
+    invested_value: double;
+    day_change: double;
+    day_change_pct: double;
+    unrealized_pnl: double;
+    realized_pnl: double;
+    positions: [Position];
+}
+
+// Order message
+table Order {
+    order_id: string (required);
+    portfolio_id: string (required);
+    symbol: string (required);
+    side: Side;
+    order_type: OrderType;
+    quantity: double;
+    price: double;              // Optional for market orders
+    stop_price: double;         // Optional for stop orders
+    time_in_force: string;      // GTC, IOC, FOK, etc.
+    timestamp: uint64;
+    status: string;             // NEW, PARTIAL, FILLED, CANCELLED, etc.
+}
+
+// Technical indicator
+table TechnicalIndicator {
+    symbol: string (required);
+    timestamp: uint64;
+    indicator_type: string;     // SMA, EMA, RSI, MACD, etc.
+    period: uint32;
+    value: double;
+    additional_values: [double]; // For indicators with multiple values (MACD, Bollinger Bands)
+}
+
+// News item
+table NewsItem {
+    id: string (required);
+    timestamp: uint64;
+    headline: string (required);
+    summary: string;
+    content: string;
+    source: string;
+    symbols: [string];          // Related symbols
+    sentiment_score: double;    // -1.0 to 1.0
+    importance: uint8;          // 1-10 scale
+    url: string;
+}
+
+// Risk metrics
+table RiskMetrics {
+    portfolio_id: string (required);
+    timestamp: uint64;
+    var_95: double;             // Value at Risk 95%
+    cvar_95: double;            // Conditional VaR 95%
+    beta: double;
+    sharpe_ratio: double;
+    sortino_ratio: double;
+    max_drawdown: double;
+    volatility: double;
+    correlation_spy: double;
+}
+
+// Message wrapper for different message types
+union MessageType {
+    MarketData,
+    OrderBookEntry,
+    Trade,
+    Portfolio,
+    Order,
+    TechnicalIndicator,
+    NewsItem,
+    RiskMetrics
+}
+
+// Root message container
+table Message {
+    message_type: MessageType (required);
+    timestamp: uint64;          // Processing timestamp
+    sequence: uint64;           // Global sequence number
+    source: string;             // Source service identifier
+}
+
+root_type Message;

@@ -17,10 +17,29 @@ services:
     networks:
       - tradecaptain_network
 
-  # TimescaleDB (PostgreSQL with time-series extension)
+  # QuestDB (6.5x faster than TimescaleDB for time-series data)
+  questdb:
+    image: questdb/questdb:latest
+    container_name: tradecaptain_questdb
+    ports:
+      - "9000:9000"    # Web Console
+      - "8812:8812"    # PostgreSQL wire protocol
+      - "9009:9009"    # InfluxDB line protocol (high-speed ingestion)
+    volumes:
+      - questdb_data:/var/lib/questdb
+      - ./database/questdb_init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - QDB_CAIRO_SQL_COPY_ROOT=/var/lib/questdb/public
+      - QDB_PG_USER=tradecaptain_user
+      - QDB_PG_PASSWORD=tradecaptain_pass
+      - QDB_PG_READONLY_USER_ENABLED=false
+    networks:
+      - tradecaptain_network
+
+  # TimescaleDB (kept for migration period - will be removed)
   timescaledb:
     image: timescale/timescaledb:latest-pg15
-    container_name: tradecaptain_timescaledb
+    container_name: tradecaptain_timescaledb_legacy
     environment:
       POSTGRES_DB: timeseries_data
       POSTGRES_USER: timescale_user
@@ -30,6 +49,26 @@ services:
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
       - ./database/timescale_init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - tradecaptain_network
+    profiles:
+      - migration  # Only start during migration
+
+  # ClickHouse (100x faster analytical queries)
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: tradecaptain_clickhouse
+    ports:
+      - "8123:8123"    # HTTP interface
+      - "9001:9000"    # Native client
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./database/clickhouse_init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - CLICKHOUSE_DB=tradecaptain_analytics
+      - CLICKHOUSE_USER=tradecaptain_user
+      - CLICKHOUSE_PASSWORD=tradecaptain_pass
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
     networks:
       - tradecaptain_network
 
@@ -52,6 +91,21 @@ services:
       resources:
         limits:
           memory: 2G
+
+  # Benthos (Go-native stream processing)
+  benthos:
+    image: jeffail/benthos:latest
+    container_name: tradecaptain_benthos
+    volumes:
+      - ./infrastructure/benthos/config.yaml:/benthos.yaml
+      - ./infrastructure/benthos/pipelines:/pipelines
+    depends_on:
+      - kafka
+      - questdb
+      - clickhouse
+    networks:
+      - tradecaptain_network
+    command: -c /benthos.yaml
 
   # Kafka (for real-time data streaming)
   zookeeper:
@@ -204,12 +258,28 @@ services:
     networks:
       - tradecaptain_network
 
+  # Grafana Phlare (Continuous Profiling)
+  phlare:
+    image: grafana/phlare:latest
+    container_name: tradecaptain_phlare
+    ports:
+      - "4100:4100"
+    volumes:
+      - phlare_data:/data
+      - ./infrastructure/phlare/config.yaml:/etc/phlare/config.yaml
+    command: -config.file=/etc/phlare/config.yaml
+    networks:
+      - tradecaptain_network
+
 volumes:
   postgres_data:
   timescaledb_data:
+  questdb_data:
+  clickhouse_data:
   dragonfly_data:
   grafana_data:
   prometheus_data:
+  phlare_data:
 
 networks:
   tradecaptain_network:

@@ -1,0 +1,85 @@
+# Grafana Phlare Continuous Profiling Configuration
+# Optimized for financial trading systems
+
+# Server configuration
+server:
+  http_listen_address: "0.0.0.0"
+  http_listen_port: 4100
+  grpc_listen_address: "0.0.0.0"
+  grpc_listen_port: 4101
+  log_level: "info"
+
+# Storage configuration for profile data
+storage:
+  backend: "filesystem"
+  filesystem:
+    dir: "/data"
+  retention_policy:
+    # Keep profiles for 30 days (adjust based on needs)
+    retention_duration: "720h"
+
+# Ingestion limits to prevent resource exhaustion
+limits:
+  # Maximum ingestion rate per tenant
+  ingestion_rate_limit: "1000"
+  ingestion_burst_limit: "2000"
+
+  # Profile size limits
+  max_profile_size_bytes: "50MB"
+  max_profile_stack_depth: 1024
+
+# Target configuration for auto-discovery
+scrape_configs:
+  # Go services profiling
+  - job_name: "tradecaptain-go-services"
+    static_configs:
+      - targets:
+          - "data-collector:6060"    # Go pprof endpoint
+          - "api-gateway:6060"       # Go pprof endpoint
+    scrape_interval: "15s"
+    scrape_timeout: "10s"
+    path: "/debug/pprof/profile"
+    params:
+      seconds: ["30"]
+
+  # Rust services profiling (using custom profiler)
+  - job_name: "tradecaptain-rust-services"
+    static_configs:
+      - targets:
+          - "calculation-engine:6061"  # Custom profiling endpoint
+    scrape_interval: "30s"
+    scrape_timeout: "15s"
+    path: "/profile"
+
+# Analytics and queries
+analytics:
+  # Enable flame graph generation
+  flame_graph_enabled: true
+
+  # Enable continuous profiling insights
+  continuous_profiling_enabled: true
+
+  # Performance regression detection
+  regression_detection:
+    enabled: true
+    sensitivity: "medium"
+    window: "1h"
+
+# Alerting rules for performance regressions
+rule_files:
+  - "/etc/phlare/rules/*.yaml"
+
+# Integration with Grafana for visualization
+grafana:
+  # This will be configured to connect to the main Grafana instance
+  enabled: false
+
+# Resource usage limits
+resource_limits:
+  memory_limit: "1GB"
+  cpu_limit: "500m"
+
+# Logging configuration
+log:
+  level: "info"
+  format: "json"

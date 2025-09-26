@@ -17,4 +17,7 @@ require (
     github.com/allegro/bigcache/v3 v3.1.0
     github.com/dgraph-io/badger/v3 v3.2103.5
     github.com/vmihailenco/msgpack/v5 v5.4.1
+    github.com/ClickHouse/clickhouse-go/v2 v2.15.0
+    github.com/iceber/iouring-go v0.0.0-20230403020409-002cfd2e2a90
+    github.com/google/flatbuffers v23.5.26+incompatible
 )
